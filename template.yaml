@@ -1,0 +1,42 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Sends CorpSpeak texts to specified numbers.
+
+Parameters:
+  #https://docs.aws.amazon.com/sns/latest/dg/sms_publish-to-phone.html
+  PhoneNumbers:
+    Type: String
+    Description: Comma delimited list with each string trimmed. Numbers must be prefixed by '+' and country code.
+
+Globals:
+    Function:
+        Timeout: 300
+        AutoPublishAlias: live
+        DeploymentPreference:
+            Type: AllAtOnce
+
+Resources:
+
+    CorpSpeakApp:
+        Type: AWS::Serverless::Function
+        Properties:
+            FunctionName: corp-speak-app
+            CodeUri: src/
+            Handler: text.handler
+            Runtime: python3.6
+            Policies:
+              - AWSLambdaExecute
+              - Statement:
+                - Effect: Allow
+                  Action:
+                    - sns:Publish
+                  Resource: '*'
+            ReservedConcurrentExecutions: 1
+            Environment:
+              Variables:
+                PHONE_NUMBERS: !Ref PhoneNumbers
+            Events:
+              InvokeEveryHalfHour:
+                Type: Schedule
+                Properties:
+                  Schedule: rate(30 minutes)
